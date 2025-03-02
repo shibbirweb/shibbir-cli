@@ -1,0 +1,27 @@
+# Ignore TypeScript source files
+src/
+tsconfig.json
+
+# Ignore test files
+__tests__/
+*.test.ts
+jest.config.js
+
+# Ignore local environment files
+.env
+.env.local
+
+# Ignore build and dependency directories
+node_modules/
+
+# Ignore Git & IDE files
+.git/
+.gitignore
+.vscode/
+.idea/
+.github/
+
+# Ignore npm & log files
+package-lock.json
+yarn.lock
+*.log
