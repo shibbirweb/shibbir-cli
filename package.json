@@ -1,0 +1,22 @@
+{
+  "name": "shibbir",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "bin": {
+    "shibbir": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["shibbir", "cli"],
+  "author": "MD. Shibbir Ahmed",
+  "license": "MIT",
+  "description": "A CLI tool by Shibbir Ahmed",
+  "devDependencies": {
+    "@types/node": "^22.13.8",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
+  }
+}
