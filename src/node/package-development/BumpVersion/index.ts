@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import inquirer from "inquirer";
 import { execSync } from "child_process";
 import { ICommand } from "../../../types";

@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { ICommand } from "../../types";
 import BumpVersion from "./BumpVersion";
 

@@ -23,9 +23,6 @@ jobs:
 
       - name: Build TypeScript
         run: npm run build
-      
-      - name: Bump Version
-        run: npm version patch --no-git-tag-version
 
       - name: Publish to npm
         run: npm publish
