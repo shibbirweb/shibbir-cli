@@ -1,3 +1,3 @@
 #!/usr/bin/env node
 
-console.log("Hello, this is Shibbir's CLI!");
+console.log("Greeting from Shibbir's CLI!");
