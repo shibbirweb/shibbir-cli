@@ -1,8 +1,8 @@
 # Commands
 
-> This page is generated from `src/tree.ts` by `pnpm wiki`. Do not edit by hand.
+> Generated from `src/tree/` by `pnpm wiki`. Do not edit by hand.
 
-The CLI is menu-driven. Run `shibbir` and navigate the prompts. Every submenu has a **Back** option; the top menu has **Exit**.
+The CLI is menu-driven. Run `shibbir` and navigate the prompts. Every submenu has a **Back** option; the top menu has **Exit**. Each command has its own page — click through from the table below.
 
 ## Menu tree
 
@@ -18,56 +18,10 @@ shibbir
             └── Start
 ```
 
-## Index
+## Commands
 
-| Command | Menu path | Description |
+| Command | Menu path | Summary |
 | --- | --- | --- |
-| [Bump Version](#node-package-development-bump-version) | Node → Package Development → Bump Version | Bumps the current package's version number and updates package.json (and the lockfile). |
-| [Stop](#windows-network-winnat-stop) | Windows → Network → WinNAT → Stop | Stops the Windows NAT (WinNAT) service to release TCP port ranges reserved by Hyper-V/WSL2/Docker, freeing ports that fail with 'port is already in use'. |
-| [Start](#windows-network-winnat-start) | Windows → Network → WinNAT → Start | Starts the Windows NAT (WinNAT) service again after it was stopped. |
-
-## Command reference
-
-### Node → Package Development → Bump Version
-
-Bumps the current package's version number and updates package.json (and the lockfile).
-
-**Runs:**
-
-```bash
-npm version <patch|minor|major> --no-git-tag-version
-```
-
-**Requirements:**
-
-- Run in a directory containing a package.json
-
-### Windows → Network → WinNAT → Stop
-
-Stops the Windows NAT (WinNAT) service to release TCP port ranges reserved by Hyper-V/WSL2/Docker, freeing ports that fail with 'port is already in use'.
-
-**Runs:**
-
-```bash
-net stop winnat
-```
-
-**Requirements:**
-
-- Windows only
-- Run the terminal as Administrator
-
-### Windows → Network → WinNAT → Start
-
-Starts the Windows NAT (WinNAT) service again after it was stopped.
-
-**Runs:**
-
-```bash
-net start winnat
-```
-
-**Requirements:**
-
-- Windows only
-- Run the terminal as Administrator
+| [Bump Version](Bump-Version) | Node → Package Development → Bump Version | Increment the package version (patch, minor, or major) in package.json. |
+| [Stop WinNAT](Stop-WinNAT) | Windows → Network → WinNAT → Stop | Stop the Windows NAT service to free TCP ports it has reserved. |
+| [Start WinNAT](Start-WinNAT) | Windows → Network → WinNAT → Start | Restart the Windows NAT service after it was stopped. |

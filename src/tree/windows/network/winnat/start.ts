@@ -10,8 +10,14 @@ export const start: MenuNode = {
       failHint: ADMIN_HINT,
     }),
   docs: {
-    about: "Starts the Windows NAT (WinNAT) service again after it was stopped.",
+    title: "Start WinNAT",
+    summary: "Restart the Windows NAT service after it was stopped.",
+    about:
+      "Starts the Windows NAT (WinNAT) service again after it was stopped with the Stop WinNAT command. Run this once you have finished freeing ports so that Hyper-V, WSL2, and Docker Desktop networking (port forwarding, NAT) returns to normal.",
     commands: ["net start winnat"],
     requirements: ["Windows only", "Run the terminal as Administrator"],
+    notes: [
+      "Pairs with Stop WinNAT — stop to free ports, start to restore normal networking.",
+    ],
   },
 };

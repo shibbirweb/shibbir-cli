@@ -36,14 +36,21 @@ export const greet: MenuNode = {
   label: "Greet",
   action: () => runShell("echo Hello", { start: "Greeting...", success: "Done!" }),
   docs: {
-    about: "Prints a greeting.",
+    title: "Greet",
+    summary: "Print a friendly greeting.",
+    about: "Longer explanation of what this command does and when to use it.",
+    prompt: "What is your name?", // if the command asks something
+    options: [
+      { name: "loud", description: "Shout it.", example: "HELLO" }, // if it offers choices
+    ],
     commands: ["echo Hello"],
-    requirements: [],
+    requirements: ["Any requirements, e.g. Windows only"],
+    notes: ["Any caveats worth calling out."],
   },
 };
 ```
 
-(Import depth of `shared` depends on how deep the leaf sits.)
+The `docs` block is what fills the command's generated wiki page, so write real content — `title` (unique, becomes the page name), `summary`, and `about` at minimum. Omit fields that don't apply. (Import depth of `shared` depends on how deep the leaf sits.)
 
 ### 2. Add it to the parent group
 

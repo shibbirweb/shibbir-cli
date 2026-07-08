@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 /**
- * Generates wiki pages from the menu tree (src/tree.ts), the single source of
+ * Generates wiki pages from the menu tree (src/tree/), the single source of
  * truth. Run with `pnpm wiki`. Deterministic: rerunning produces no diff.
  *
- * Owns:  wiki/Commands.md (fully generated)
- * Edits: the <!-- AUTO:START -->..<!-- AUTO:END --> block in Home.md and _Sidebar.md
+ * Owns:
+ *   - wiki/Commands.md              hub: menu tree + index linking to command pages
+ *   - wiki/<Command Title>.md       one rich page per command (marked, see MARKER)
+ * Edits:
+ *   - the <!-- AUTO:START -->..<!-- AUTO:END --> block in Home.md and _Sidebar.md
  * Leaves alone: all other (hand-written) wiki pages.
  */
-import { writeFileSync, readFileSync } from "fs";
+import { writeFileSync, readFileSync, readdirSync, unlinkSync } from "fs";
 import { join } from "path";
 import { tree } from "../src/tree";
 import { MenuNode } from "../src/types";
@@ -15,10 +18,32 @@ import { MenuNode } from "../src/types";
 const WIKI_DIR = join(__dirname, "..", "wiki");
 const AUTO_START = "<!-- AUTO:START -->";
 const AUTO_END = "<!-- AUTO:END -->";
+const MARKER = "<!-- generated: command-page. Edit src/tree/, run `pnpm wiki`. -->";
 
-/** Slug used for in-page anchors (GitHub lowercases and dashifies headings). */
-function anchor(path: string[]): string {
-  return path.join(" ").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+interface Leaf {
+  node: MenuNode;
+  path: string[];
+}
+
+/** Every leaf command with its breadcrumb path. */
+function leaves(nodes: MenuNode[], path: string[] = []): Leaf[] {
+  const out: Leaf[] = [];
+  for (const node of nodes) {
+    const here = [...path, node.label];
+    if (node.children) out.push(...leaves(node.children, here));
+    else if (node.action) out.push({ node, path: here });
+  }
+  return out;
+}
+
+/** Wiki page title for a command (docs.title or the leaf label). */
+function pageTitle(leaf: Leaf): string {
+  return leaf.node.docs?.title ?? leaf.node.label;
+}
+
+/** GitHub wiki page/link name: spaces become hyphens. */
+function pageName(title: string): string {
+  return title.trim().replace(/\s+/g, "-");
 }
 
 /** ASCII tree diagram of labels (with descriptions), from a list of nodes. */
@@ -36,70 +61,84 @@ function renderTree(nodes: MenuNode[], prefix = ""): string[] {
   return lines;
 }
 
-/** Every leaf command with its breadcrumb path. */
-function leaves(nodes: MenuNode[], path: string[] = []): { node: MenuNode; path: string[] }[] {
-  const out: { node: MenuNode; path: string[] }[] = [];
-  for (const node of nodes) {
-    const here = [...path, node.label];
-    if (node.children) out.push(...leaves(node.children, here));
-    else if (node.action) out.push({ node, path: here });
-  }
-  return out;
+function treeBlock(): string {
+  return ["```", "shibbir", ...renderTree(tree), "```"].join("\n");
 }
 
-function renderCommandsPage(): string {
-  const treeBlock = ["```", "shibbir", ...renderTree(tree), "```"].join("\n");
-  const all = leaves(tree);
+/** A single rich command page. */
+function renderCommandPage(leaf: Leaf): string {
+  const d = leaf.node.docs ?? {};
+  const title = pageTitle(leaf);
+  const breadcrumb = leaf.path.join(" → ");
+  const out: string[] = [MARKER, "", `# ${title}`, "", `*${breadcrumb}*`, ""];
 
+  if (d.summary) out.push(d.summary, "");
+  if (d.about) out.push("## Overview", "", d.about, "");
+
+  out.push("## Usage", "", "```", `shibbir → ${breadcrumb}`, "```", "");
+  if (d.prompt) out.push(`You are prompted: **${d.prompt}**`, "");
+
+  if (d.options?.length) {
+    out.push("## Options", "", "| Option | Description | Example |", "| --- | --- | --- |");
+    for (const o of d.options) {
+      out.push(`| \`${o.name}\` | ${o.description} | ${o.example ? `\`${o.example}\`` : ""} |`);
+    }
+    out.push("");
+  }
+
+  if (d.commands?.length) {
+    out.push("## Runs", "", "```bash", ...d.commands, "```", "");
+  }
+
+  if (d.requirements?.length) {
+    out.push("## Requirements", "", ...d.requirements.map((r) => `- ${r}`), "");
+  }
+
+  if (d.notes?.length) {
+    out.push("## Notes", "", ...d.notes.map((n) => `- ${n}`), "");
+  }
+
+  out.push("---", "", "See all commands in **[[Commands]]**.", "");
+  return out.join("\n");
+}
+
+/** The Commands hub page: menu tree + index linking to each command page. */
+function renderCommandsHub(all: Leaf[]): string {
   const index = [
-    "| Command | Menu path | Description |",
+    "| Command | Menu path | Summary |",
     "| --- | --- | --- |",
-    ...all.map(({ node, path }) => {
-      const desc = node.docs?.about ?? node.description ?? "";
-      return `| [${node.label}](#${anchor(path)}) | ${path.join(" → ")} | ${desc} |`;
+    ...all.map((leaf) => {
+      const title = pageTitle(leaf);
+      const summary = leaf.node.docs?.summary ?? leaf.node.description ?? "";
+      return `| [${title}](${pageName(title)}) | ${leaf.path.join(" → ")} | ${summary} |`;
     }),
   ].join("\n");
-
-  const details = all
-    .map(({ node, path }) => {
-      const parts: string[] = [`### ${path.join(" → ")}`, ""];
-      if (node.docs?.about) parts.push(node.docs.about, "");
-      if (node.docs?.commands?.length) {
-        parts.push("**Runs:**", "", "```bash", ...node.docs.commands, "```", "");
-      }
-      if (node.docs?.requirements?.length) {
-        parts.push("**Requirements:**", "", ...node.docs.requirements.map((r) => `- ${r}`), "");
-      }
-      return parts.join("\n").trimEnd();
-    })
-    .join("\n\n");
 
   return [
     "# Commands",
     "",
-    "> This page is generated from `src/tree.ts` by `pnpm wiki`. Do not edit by hand.",
+    "> Generated from `src/tree/` by `pnpm wiki`. Do not edit by hand.",
     "",
-    "The CLI is menu-driven. Run `shibbir` and navigate the prompts. Every submenu has a **Back** option; the top menu has **Exit**.",
+    "The CLI is menu-driven. Run `shibbir` and navigate the prompts. Every submenu has a **Back** option; the top menu has **Exit**. Each command has its own page — click through from the table below.",
     "",
     "## Menu tree",
     "",
-    treeBlock,
+    treeBlock(),
     "",
-    "## Index",
+    "## Commands",
     "",
     index,
-    "",
-    "## Command reference",
-    "",
-    details,
     "",
   ].join("\n");
 }
 
-/** Sidebar command links, one bullet per leaf, indented by depth. */
-function renderSidebarLinks(): string {
-  return leaves(tree)
-    .map(({ path }) => `- [${path.join(" → ")}](Commands#${anchor(path)})`)
+/** Sidebar command links, one per command page. */
+function renderSidebarLinks(all: Leaf[]): string {
+  return all
+    .map((leaf) => {
+      const title = pageTitle(leaf);
+      return `- [${title}](${pageName(title)})`;
+    })
     .join("\n");
 }
 
@@ -115,14 +154,34 @@ function replaceAutoBlock(file: string, inner: string): void {
   writeFileSync(path, `${before}\n${inner}\n${after}`);
 }
 
+/** Delete previously generated command pages that are no longer produced. */
+function cleanStaleCommandPages(keep: Set<string>): void {
+  for (const file of readdirSync(WIKI_DIR)) {
+    if (!file.endsWith(".md") || keep.has(file)) continue;
+    const full = join(WIKI_DIR, file);
+    if (readFileSync(full, "utf8").startsWith(MARKER)) unlinkSync(full);
+  }
+}
+
 function main(): void {
-  writeFileSync(join(WIKI_DIR, "Commands.md"), renderCommandsPage());
+  const all = leaves(tree);
 
-  const treeBlock = ["```", "shibbir", ...renderTree(tree), "```"].join("\n");
-  replaceAutoBlock("Home.md", treeBlock);
-  replaceAutoBlock("_Sidebar.md", renderSidebarLinks());
+  // One page per command.
+  const written = new Set<string>();
+  for (const leaf of all) {
+    const file = `${pageName(pageTitle(leaf))}.md`;
+    writeFileSync(join(WIKI_DIR, file), renderCommandPage(leaf));
+    written.add(file);
+  }
+  cleanStaleCommandPages(written);
 
-  console.log("Wiki generated: Commands.md, Home.md, _Sidebar.md");
+  // Hub + injected blocks.
+  writeFileSync(join(WIKI_DIR, "Commands.md"), renderCommandsHub(all));
+  replaceAutoBlock("Home.md", treeBlock());
+  replaceAutoBlock("_Sidebar.md", renderSidebarLinks(all));
+
+  const pages = [...written].sort().join(", ");
+  console.log(`Wiki generated: Commands.md, Home.md, _Sidebar.md, and command pages: ${pages}`);
 }
 
 main();
