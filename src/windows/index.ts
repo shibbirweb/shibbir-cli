@@ -1,23 +1,23 @@
 #!/usr/bin/env node
 import inquirer from "inquirer";
-import packageDevelopment from "./package-development";
+import network from "./network";
 
-const TYPE_PACKAGE_DEVELOPMENT = "Package Development";
+const TYPE_NETWORK = "Network";
 
-export async function nodeMain() {
+export async function windowsMain() {
   while (true) {
     const { type } = await inquirer.prompt([
       {
         type: "list",
         name: "type",
         message: "Select an option:",
-        choices: [TYPE_PACKAGE_DEVELOPMENT, "Back"],
+        choices: [TYPE_NETWORK, "Back"],
       },
     ]);
 
     switch (type) {
-      case TYPE_PACKAGE_DEVELOPMENT:
-        await packageDevelopment();
+      case TYPE_NETWORK:
+        await network();
         break;
       default:
         return;

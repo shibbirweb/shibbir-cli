@@ -3,6 +3,9 @@
 - [[Home]]
 - [[Installation]]
 - **[[Commands]]**
-  - [[Bump Version]]
+  - Node → Package Development
+    - [[Bump Version]]
+  - Windows → Network
+    - [[WinNAT]]
 - [[Adding a Command]]
 - [[Publishing]]

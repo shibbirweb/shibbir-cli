@@ -22,8 +22,14 @@ Follow the interactive prompts. See **[[Installation]]** for details.
 
 ```
 shibbir
-└── Node
-    └── Package Development
-        ├── Bump Version
-        └── Exit
+├── Node
+│   └── Package Development
+│       └── Bump Version
+└── Windows
+    └── Network
+        └── WinNAT
+            ├── Stop
+            └── Start
 ```
+
+Every submenu has a **Back** option to return to the previous menu; the top menu has **Exit** to quit.

@@ -18,13 +18,15 @@ Run the CLI and follow the interactive menus:
 shibbir
 ```
 
-Navigate: **Node → Package Development → _command_**.
+Navigate the top-level categories: **Node** or **Windows**.
 
 ### Available commands
 
-| Command | Description |
-| --- | --- |
-| Bump Version | Bump the current package version (`patch`, `minor`, or `major`) via `npm version --no-git-tag-version`. |
+| Category | Command | Description |
+| --- | --- | --- |
+| Node → Package Development | Bump Version | Bump the current package version (`patch`, `minor`, or `major`) via `npm version --no-git-tag-version`. |
+| Windows → Network | WinNAT → Stop | Stop the WinNAT service to free reserved/blocked ports (Hyper-V/WSL/Docker). Run as Administrator. |
+| Windows → Network | WinNAT → Start | Start the WinNAT service again. Run as Administrator. |
 
 ## Development
 
@@ -48,6 +50,15 @@ src/
       index.ts                      # Package Development menu
       register.ts                   # command registry
       BumpVersion/index.ts          # example command
+  windows/
+    index.ts                        # Windows menu
+    network/
+      index.ts                      # Network menu (WinNAT group)
+      winnat/
+        index.ts                    # WinNAT menu
+        register.ts                 # command registry
+        Stop/index.ts               # net stop winnat
+        Start/index.ts              # net start winnat
   types/index.ts                    # ICommand interface
 ```
 

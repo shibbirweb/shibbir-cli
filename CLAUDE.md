@@ -14,17 +14,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 CLI is a tree of `inquirer` list-prompt menus. Each layer shows a list and routes the selection to the next layer:
 
-`src/index.ts` (entry, `bin` → `dist/index.js`, shebang) → `nodeMain()` in `src/node/index.ts` → `packageDevelopment()` in `src/node/package-development/index.ts`.
+`src/index.ts` (entry, `bin` → `dist/index.js`, shebang) has two top-level branches:
+- `nodeMain()` in `src/node/index.ts` → `packageDevelopment()` in `src/node/package-development/index.ts`.
+- `windowsMain()` in `src/windows/index.ts` → `network()` in `src/windows/network/index.ts` → `winnat()` in `src/windows/network/winnat/index.ts` (Windows/network utilities, e.g. WinNAT stop/start to free blocked ports).
 
 ### Command registry (the extensibility pattern to reuse)
 
 Commands implement the `ICommand` interface (`src/types/index.ts` — `{ name: string; action: () => Promise<void> }`).
 
-`src/node/package-development/register.ts` holds `commandsList: ICommand[]`. It builds a `Record<name, action>` dispatch map from that array. The menu in `index.ts` derives its choices from `Object.keys(register)`, so registering a command auto-wires both the menu entry and dispatch.
+A leaf group has its own `register.ts` holding `commandsList: ICommand[]`. It builds a `Record<name, action>` dispatch map from that array. The group menu derives its choices from `Object.keys(register)`, so registering a command auto-wires both the menu entry and dispatch. `src/windows/network/winnat/register.ts` mirrors `src/node/package-development/register.ts`. Intermediate menus (`src/windows/index.ts`, `src/windows/network/index.ts`) are plain `switch` routers, not registries — nest as deep as needed before the registry leaf.
 
-**To add a command:** create a class implementing `ICommand` under `src/node/package-development/<Name>/`, then add `new <Name>()` to `commandsList` in `register.ts`. No other wiring.
+Every menu runs in a `while (true)` loop. Submenus include a `"Back"` choice that `return`s to the parent loop (which re-prompts); the top menu (`src/index.ts`) uses `"Exit"` to quit. New menus should follow this: loop + `"Back"`.
 
-Example: `src/node/package-development/BumpVersion/index.ts` — wraps `npm version <patch|minor|major> --no-git-tag-version` via `execSync`.
+**To add a command:** create a class implementing `ICommand` under the group folder (e.g. `src/windows/network/winnat/<Name>/`), then add `new <Name>()` to `commandsList` in that group's `register.ts`. No other wiring.
+
+Examples: `src/node/package-development/BumpVersion/index.ts` (wraps `npm version` via `execSync`); `src/windows/network/winnat/Stop/index.ts` and `Start/index.ts` (wrap `net stop/start winnat` — Windows, requires elevated shell, catch prints an Administrator hint).
 
 ## Commits
 
