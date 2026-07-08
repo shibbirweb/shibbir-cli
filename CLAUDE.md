@@ -6,29 +6,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `npm start` — run the CLI in dev via `ts-node src/index.ts` (no build step needed).
 - `npm run build` — `tsc`, compiles `src/**/*.ts` to `dist/` (test files excluded).
+- `pnpm wiki` — regenerate the wiki from the menu tree (`ts-node scripts/generate-wiki.ts`).
 - `npm test` — run Jest (`ts-jest`).
 - Single test: `npx jest src/index.test.ts` or `npx jest -t "<test name>"`.
 - **`npm run build` must run before `npm test`**: `src/index.test.ts` spawns the compiled `dist/index.js`, not the source.
+- This repo uses **pnpm** (`pnpm-lock.yaml`).
 
 ## Architecture
 
-CLI is a tree of `inquirer` list-prompt menus. Each layer shows a list and routes the selection to the next layer:
+The entire CLI is one recursive data structure walked by one generic runner. Four source files:
 
-`src/index.ts` (entry, `bin` → `dist/index.js`, shebang) has two top-level branches:
-- `nodeMain()` in `src/node/index.ts` → `packageDevelopment()` in `src/node/package-development/index.ts`.
-- `windowsMain()` in `src/windows/index.ts` → `network()` in `src/windows/network/index.ts` → `winnat()` in `src/windows/network/winnat/index.ts` (Windows/network utilities, e.g. WinNAT stop/start to free blocked ports).
+- `src/types/index.ts` — the `MenuNode` type: `{ label, description?, children?, action?, docs? }`. A node with `children` is a submenu; a node with `action` is a command (branch xor leaf). `docs` is runtime-ignored metadata used only by the wiki generator.
+- `src/tree/` — the menu tree, where **the folder layout mirrors the menu hierarchy** (e.g. `windows/network/winnat/stop.ts`). Group nodes are `index.ts` files that import their children and assemble them; leaf files export a `MenuNode` with `action` + `docs`. `src/tree/index.ts` exports `tree = [node, windows]`. **Single source of truth** for both the CLI and the wiki. Each file is kept tiny.
+- `src/tree/shared.ts` — shared helpers: `runShell(command, { start, success, failHint })` wraps the common `execSync({ stdio: "inherit" })` + try/catch + logging (used by every shell command, e.g. `stop.ts`'s `runShell("net stop winnat", { ..., failHint: ADMIN_HINT })`); also exports `ADMIN_HINT` and re-exports `MenuNode` so a leaf needs one import.
+- `src/menu.ts` — `runMenu(nodes, isRoot)`: renders an `inquirer` list of the nodes, recurses into `children`, calls `action` on leaves. Runs in a `while (true)` loop; submenus offer `"Back"` (returns to the parent loop), the root offers `"Exit"`. Node labels render as `label - description` when a `description` is present.
+- `src/index.ts` — entry (`bin` → `dist/index.js`, shebang); just `runMenu(tree, true)`.
 
-### Command registry (the extensibility pattern to reuse)
+### Adding a command
 
-Commands implement the `ICommand` interface (`src/types/index.ts` — `{ name: string; action: () => Promise<void> }`).
+Add a leaf file under `src/tree/` (next to its siblings — the folders mirror the menu) exporting a `MenuNode` with `action` + `docs`, and add it to the parent group's `index.ts` `children`. Use `runShell` for shell commands. A new top-level category is a new folder with an `index.ts` imported into `src/tree/index.ts`. Then run `pnpm wiki`. No router/registry wiring.
 
-A leaf group has its own `register.ts` holding `commandsList: ICommand[]`. It builds a `Record<name, action>` dispatch map from that array. The group menu derives its choices from `Object.keys(register)`, so registering a command auto-wires both the menu entry and dispatch. `src/windows/network/winnat/register.ts` mirrors `src/node/package-development/register.ts`. Intermediate menus (`src/windows/index.ts`, `src/windows/network/index.ts`) are plain `switch` routers, not registries — nest as deep as needed before the registry leaf.
+### Wiki generation
 
-Every menu runs in a `while (true)` loop. Submenus include a `"Back"` choice that `return`s to the parent loop (which re-prompts); the top menu (`src/index.ts`) uses `"Exit"` to quit. New menus should follow this: loop + `"Back"`.
+`scripts/generate-wiki.ts` (run via `pnpm wiki`) imports `tree` and generates docs deterministically (idempotent — rerun yields no diff):
+- **Owns** `wiki/Commands.md` (menu tree + breadcrumb index + per-command reference from `docs`).
+- **Rewrites** only the block between `<!-- AUTO:START -->` and `<!-- AUTO:END -->` in `wiki/Home.md` (menu tree) and `wiki/_Sidebar.md` (command links).
+- **Leaves alone** hand-written pages: `Home.md` prose, `Installation.md`, `Publishing.md`, `Adding-a-Command.md`.
 
-**To add a command:** create a class implementing `ICommand` under the group folder (e.g. `src/windows/network/winnat/<Name>/`), then add `new <Name>()` to `commandsList` in that group's `register.ts`. No other wiring.
-
-Examples: `src/node/package-development/BumpVersion/index.ts` (wraps `npm version` via `execSync`); `src/windows/network/winnat/Stop/index.ts` and `Start/index.ts` (wrap `net stop/start winnat` — Windows, requires elevated shell, catch prints an Administrator hint).
+After changing the tree, run `pnpm wiki` and commit the regenerated pages.
 
 ## Commits
 

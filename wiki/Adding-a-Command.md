@@ -1,58 +1,71 @@
 # Adding a Command
 
-Commands are pluggable. The menu and dispatch are generated from a registry, so adding a command is two code steps (plus docs).
+The entire CLI is one recursive menu tree under [`src/tree/`](https://github.com/shibbirweb/shibbir-cli/tree/master/src/tree), walked by a single generic runner (`src/menu.ts`). Each top-level category (Node, Windows, …) is its own file exporting a `MenuNode`; `src/tree/index.ts` assembles them into `tree`. Adding a command means adding one node — no menu wiring.
 
-## 1. Create the command class
+## The node type
 
-Create `src/node/package-development/<Name>/index.ts` implementing the `ICommand` interface (`src/types/index.ts`):
+`MenuNode` (`src/types/index.ts`):
 
 ```ts
-import { ICommand } from "../../../types";
-
-export default class MyCommand implements ICommand {
-  name: string = "My Command"; // shown in the menu
-
-  async action() {
-    // command logic here
-  }
+export interface MenuNode {
+  label: string;              // menu choice text
+  description?: string;       // optional hint shown after the label
+  children?: MenuNode[];      // branch: a submenu
+  action?: () => Promise<void> | void; // leaf: the command
+  docs?: {                    // used only by the wiki generator
+    about?: string;
+    commands?: string[];
+    requirements?: string[];
+  };
 }
 ```
 
-`ICommand` is:
+- A node with `children` is a **submenu** (nest as deep as you like).
+- A node with `action` is a **command**.
+
+## Steps
+
+### 1. Write the action
+
+The `src/tree/` folder layout mirrors the menu. Create a small leaf file next to its siblings (e.g. `src/tree/windows/network/winnat/restart.ts`) that exports one `MenuNode`. Use the shared `runShell` helper for shell commands:
 
 ```ts
-export interface ICommand {
-  name: string;
-  action: () => Promise<void>;
-}
+import { MenuNode, runShell } from "../../../shared";
+
+export const greet: MenuNode = {
+  label: "Greet",
+  action: () => runShell("echo Hello", { start: "Greeting...", success: "Done!" }),
+  docs: {
+    about: "Prints a greeting.",
+    commands: ["echo Hello"],
+    requirements: [],
+  },
+};
 ```
 
-## 2. Register it
+(Import depth of `shared` depends on how deep the leaf sits.)
 
-Add an instance to `commandsList` in `src/node/package-development/register.ts`:
+### 2. Add it to the parent group
+
+In the parent's `index.ts`, import the leaf and add it to `children`:
 
 ```ts
-import MyCommand from "./MyCommand";
-
-const commandsList: ICommand[] = [
-  new BumpVersion(),
-  new MyCommand(), // <- add here
-];
+import { greet } from "./greet";
+// ...
+children: [stop, start, greet],
 ```
 
-The menu choices come from `Object.keys(register)` and dispatch is built from the same list — no other wiring needed.
+A brand-new top-level category is a new folder with an `index.ts` exporting a `MenuNode`, imported into `src/tree/index.ts`.
 
-## 3. Document it
+### 3. Regenerate the wiki
 
-- Add a page in the wiki for the command (copy **[[Bump Version]]** as a template).
-- Add a row to the **[[Commands]]** index and a link in the sidebar (`_Sidebar.md`).
+```bash
+pnpm wiki
+```
 
-## Where menus live
+This rewrites **[[Commands]]** and the menu tree / links in **[[Home]]** and the sidebar from the tree. Commit the regenerated files.
 
-| Layer | File |
-| --- | --- |
-| Entry / top menu | `src/index.ts` |
-| Node menu | `src/node/index.ts` |
-| Package Development menu | `src/node/package-development/index.ts` |
-| Command registry | `src/node/package-development/register.ts` |
-| `ICommand` interface | `src/types/index.ts` |
+## What you never touch
+
+- No menu router or registry — `src/menu.ts` walks the tree generically.
+- `Back` / `Exit` navigation is automatic for every menu level.

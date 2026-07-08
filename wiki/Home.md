@@ -14,12 +14,13 @@ Follow the interactive prompts. See **[[Installation]]** for details.
 ## Contents
 
 - **[[Installation]]** — install and requirements
-- **[[Commands]]** — every command, with per-command reference pages
+- **[[Commands]]** — every command, generated from the menu tree
 - **[[Adding a Command]]** — extend the CLI with a new command
 - **[[Publishing]]** — how releases reach npm
 
 ## Menu tree
 
+<!-- AUTO:START -->
 ```
 shibbir
 ├── Node
@@ -27,9 +28,10 @@ shibbir
 │       └── Bump Version
 └── Windows
     └── Network
-        └── WinNAT
+        └── WinNAT (stop/start to free ports blocked by Hyper-V/WSL/Docker)
             ├── Stop
             └── Start
 ```
+<!-- AUTO:END -->
 
 Every submenu has a **Back** option to return to the previous menu; the top menu has **Exit** to quit.
