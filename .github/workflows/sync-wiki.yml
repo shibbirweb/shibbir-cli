@@ -1,0 +1,44 @@
+name: Sync Wiki
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "wiki/**"
+  # Allow manual re-sync from the Actions tab.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Mirror wiki/ to the GitHub Wiki
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          tmp="$(mktemp -d)"
+          git clone "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" "$tmp"
+
+          # Replace all wiki pages with the committed wiki/ folder.
+          rm -f "$tmp"/*.md
+          cp wiki/*.md "$tmp"/
+
+          cd "$tmp"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki already up to date."
+          else
+            git commit -m "docs: sync wiki from ${GITHUB_SHA::7}"
+            git push
+          fi

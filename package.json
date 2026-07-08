@@ -5,6 +5,9 @@
   "bin": {
     "shibbir": "dist/index.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "start": "ts-node src/index.ts",
