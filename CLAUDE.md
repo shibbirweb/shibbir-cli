@@ -29,9 +29,12 @@ Add a leaf file under `src/tree/` (next to its siblings — the folders mirror t
 ### Wiki generation
 
 `scripts/generate-wiki.ts` (run via `pnpm wiki`) imports `tree` and generates docs deterministically (idempotent — rerun yields no diff):
-- **Owns** `wiki/Commands.md` (menu tree + breadcrumb index + per-command reference from `docs`).
-- **Rewrites** only the block between `<!-- AUTO:START -->` and `<!-- AUTO:END -->` in `wiki/Home.md` (menu tree) and `wiki/_Sidebar.md` (command links).
-- **Leaves alone** hand-written pages: `Home.md` prose, `Installation.md`, `Publishing.md`, `Adding-a-Command.md`.
+- **Owns `wiki/Commands.md`** — a hub: menu tree + an index table linking to each command page.
+- **Owns one page per command** — `wiki/<Command Title>.md` (title from `docs.title`, spaces→hyphens), rendered from the `CommandDocs` fields (`summary`, `about`, `prompt`, `options` table, `commands`, `requirements`, `notes`). Each generated page starts with a `<!-- generated: command-page ... -->` marker; the generator deletes marked pages that are no longer produced (stale cleanup).
+- **Rewrites** only the block between `<!-- AUTO:START -->` and `<!-- AUTO:END -->` in `wiki/Home.md` (menu tree) and `wiki/_Sidebar.md` (per-command links).
+- **Leaves alone** hand-written pages (no marker): `Home.md` prose, `Installation.md`, `Publishing.md`, `Adding-a-Command.md`.
+
+The `CommandDocs` shape lives in `src/types/index.ts`. Give every command a `docs` block with a unique `title` and real content — the label alone ("Stop", "Bump Version") is not enough for a standalone page.
 
 After changing the tree, run `pnpm wiki` and commit the regenerated pages. On push to `master`, `.github/workflows/sync-wiki.yml` mirrors the committed `wiki/` folder to the GitHub Wiki repo (the committed folder is the source of truth — the workflow does not regenerate). One-time prerequisite: the GitHub Wiki must be initialized (create any first page in the UI) before the sync can push.
 
