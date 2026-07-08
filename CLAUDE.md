@@ -33,7 +33,7 @@ Add a leaf file under `src/tree/` (next to its siblings — the folders mirror t
 - **Rewrites** only the block between `<!-- AUTO:START -->` and `<!-- AUTO:END -->` in `wiki/Home.md` (menu tree) and `wiki/_Sidebar.md` (command links).
 - **Leaves alone** hand-written pages: `Home.md` prose, `Installation.md`, `Publishing.md`, `Adding-a-Command.md`.
 
-After changing the tree, run `pnpm wiki` and commit the regenerated pages.
+After changing the tree, run `pnpm wiki` and commit the regenerated pages. On push to `master`, `.github/workflows/sync-wiki.yml` mirrors the committed `wiki/` folder to the GitHub Wiki repo (the committed folder is the source of truth — the workflow does not regenerate). One-time prerequisite: the GitHub Wiki must be initialized (create any first page in the UI) before the sync can push.
 
 ## Commits
 
